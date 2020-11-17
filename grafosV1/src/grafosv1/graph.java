@@ -44,6 +44,14 @@ public class graph {
         return graph;
     }
     
+    boolean isRepeated(int n1, int n2){
+        boolean repeated=false;
+        for (int i=0; i<graph[0].size();i++)
+            if ((graph[0].get(i)==n1 && graph[1].get(i)==n2) || (graph[0].get(i)==n2 && graph[1].get(i)==n1) )
+                repeated=true;
+        return repeated;
+    }
+    
     void CretateGraph(String method, int n, double p)
     {
         switch(method){
@@ -51,8 +59,10 @@ public class graph {
                 for (int i=0;i<(int)p;i++){
                     int n1=rand.nextInt(n)+1;
                     int n2=rand.nextInt(n)+1;
-                    graph[0].add(n1);
-                    graph[1].add(n2);                   
+                    if((n1!=n2) && !(isRepeated(n1,n2)) ){
+                        graph[0].add(n1);
+                        graph[1].add(n2);  
+                    }              
                 }     
                 break;
             case GILBERT:
@@ -61,7 +71,7 @@ public class graph {
                 allPairs[1]=new ArrayList<>();
                 for (int i=1;i<=n;i++) //Generates all possible pairs
                     for(int j=1;j<=n;j++)
-                        if (i!=j){
+                        if ((j>i)  && !(isRepeated(i,j))){
                             allPairs[0].add(i);
                             allPairs[1].add(j);
                         }   
@@ -81,7 +91,7 @@ public class graph {
                 }
                 for (int i=0;i<dist[0].size();i++)
                     for (int j=0;j<dist[1].size();j++)
-                        if (j!=i){
+                        if ((j>i)  && !(isRepeated(i,j))){
                             double distx=dist[0].get(i)-dist[0].get(j);
                             double disty=dist[1].get(i)-dist[1].get(j);
                             double distance=Math.sqrt(Math.pow(distx,2)+Math.pow(disty,2));
@@ -97,7 +107,7 @@ public class graph {
                     deg.add(0);
                  for (int i=0;i<n;i++)                  //For each graph...
                     for (int j=0;j<n;j++)               //compare with the other graphs...
-                        if (j!=i)                       //Except for itself...
+                        if ((j>i) && !(isRepeated(j,i)))                       //Except for itself...
                             if (deg.get(i)<(int)p){     //If there is room, add an edge...
                                 graph[0].add(i);
                                 graph[1].add(j);
@@ -117,8 +127,10 @@ public class graph {
         for (int i=0;i<m;i++){
             int n1=rand.nextInt(n)+1;
             int n2=rand.nextInt(n)+1;
-            graph[0].add(n1);
-            graph[1].add(n2);                   
+            if((n1!=n2)  && !(isRepeated(n1,n2))){
+                graph[0].add(n1);
+                graph[1].add(n2);  
+                }                    
             }  
     }
     
@@ -128,7 +140,7 @@ public class graph {
         allPairs[1]=new ArrayList<>();
         for (int i=1;i<=n;i++) //Generates all possible pairs
             for(int j=1;j<=n;j++)
-                if (i!=j){
+                if ((j>i)  && !(isRepeated(i,j))){
                     allPairs[0].add(i);
                     allPairs[1].add(j);
                     }   
@@ -149,7 +161,7 @@ public class graph {
             }
         for (int i=0;i<dist[0].size();i++)
             for (int j=0;j<dist[1].size();j++)
-                if (j!=i){
+                if ((j>i)  && !(isRepeated(i,j))){
                     double distx=dist[0].get(i)-dist[0].get(j);
                     double disty=dist[1].get(i)-dist[1].get(j);
                     double distance=Math.sqrt(Math.pow(distx,2)+Math.pow(disty,2));
@@ -166,7 +178,7 @@ public class graph {
             deg.add(0);
         for (int i=0;i<n;i++)                  //For each graph...
             for (int j=0;j<n;j++)               //compare with the other graphs...
-                if (j!=i)                       //Except for itself...
+                if ((j>i) && !(isRepeated(i,j)))                       //Except for itself...
                     if (deg.get(i)<d){     //If there is room, add an edge...
                         graph[0].add(i);
                         graph[1].add(j);
