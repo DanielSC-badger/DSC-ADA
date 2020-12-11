@@ -5,6 +5,8 @@ import java.util.Random;
 import java.io.File; 
 import java.io.FileWriter; 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Daniel Silva Contreras
@@ -61,15 +63,23 @@ public class graph {
     }
     
     ArrayList<ArrayList<Integer>> get_Tree(){
-        return treeEdges_BFS;               //Change tree as needed *CAUTION* 
+        return treeEdges_DFSI;               //Change tree as needed *CAUTION* 
     }
     ArrayList<node> get_graphNodes(){
         return graphNodes;
     }
     int getSomeNode(int limit){
-        node validNode=graphNodes.get(rand.nextInt(limit));
-        int validID=validNode.getID();
-        return validID;        
+        int num=0;
+        boolean valid=false;
+        while(valid==false){
+            num=rand.nextInt(limit);
+            for(node n : graphNodes){
+                if(num==n.getID()){
+                    valid=true;
+                }
+            }
+        }
+        return num;        
     }
     boolean isRepeated(int n1, int n2){
         ArrayList<Integer> nEdge = new ArrayList<>();
@@ -119,17 +129,20 @@ public class graph {
             while((n1==n2) || (isRepeated(n1,n2))){
                 n1=rand.nextInt(n)+1;
                 n2=rand.nextInt(n)+1;
-            }                    
-            node newNode=new node(false);
-            node newNode2=new node(false);
-            newNode.setID(n1);
-            newNode2.setID(n2);
-            newNode.connectWith(n2);
-            if (!graphNodes.contains(newNode))
+            }   
+            if(getNode(n1)==null){
+                node newNode=new node(false);
+                newNode.setID(n1);
                 graphNodes.add(newNode);
-            if (!graphNodes.contains(newNode2))
+            }
+            if(getNode(n2)==null){
+                node newNode2=new node(false);
+                newNode2.setID(n2);
                 graphNodes.add(newNode2);
-            ArrayList<ArrayList<Integer>> _edge= newNode.getEdges();
+            }
+            getNode(n1).connectWith(getNode(n2));
+            
+            ArrayList<ArrayList<Integer>> _edge= getNode(n1).getEdges();
             graph.add(_edge.get(_edge.size()-1));      
         }  
     }
@@ -151,7 +164,7 @@ public class graph {
                         if (!isRepeated(n1,n2) && (n1!=n2)){
                             if (!graphNodes.contains(g))
                                 graphNodes.add(g);
-                            pnode.connectWith(n2);  //connect the nodes
+                            pnode.connectWith(g);  //connect the nodes
                             ArrayList<Integer> _edge=new ArrayList<>();
                             _edge.add(n1); _edge.add(n2);
                             graph.add(_edge);       //add the edge to the graph
@@ -236,6 +249,20 @@ public class graph {
         }
     }
     
+    void clearFiles(){
+        File folder = new File(System.getProperty("user.dir"));
+        File fList[] = folder.listFiles();
+        for (File _file : fList) {
+            String fileName=_file.getName();
+            if (fileName.endsWith(".dot")) {
+                System.out.println("Erase: "+fileName);
+                
+                _file.delete();
+                
+                }
+        }
+    }
+    
     //Method to save the Graph as a text document compatible with Gephi
     void saveGraph(){
         String graphStr="graph"+Name+".dot";
@@ -269,7 +296,15 @@ public class graph {
 
     //Methods corresponding to project 2 (DFS and BFS tree) 
      void saveTree(int tree){ //Yes, is redundant with the above function
-        String graphStr="tree_"+Name+".dot";
+        String type;
+        if(tree==1)
+            type="BFS";
+        else if(tree==2)
+            type="DFSR";
+        else
+            type="DFSI";
+                
+        String graphStr="graphTree_"+type+"_"+Name+".dot";
         try {
             File myObj = new File(graphStr);
             if (myObj.createNewFile()) 
@@ -312,13 +347,19 @@ public class graph {
             e.printStackTrace();
             }
     }
-     
+    
+    private void unexplore(){
+        for (node n : graphNodes){
+            n.setExplored(false);
+            n.setParent(-1);
+        }
+    }
+    
     private node getNode(int _ID){
         for(node n : graphNodes){
             if(_ID==n.getID())
                 return n;
         }
-        System.out.println("Node " + _ID + " not found");
         return null;
     } 
     
@@ -336,7 +377,6 @@ public class graph {
         
         int i=0; // layer counter
         if (nodeExist){
-            //System.out.println("NodeExist");
             init_tree();
             visited.add(nodeStart);
             while(!L.get(i).isEmpty()){                
@@ -349,7 +389,6 @@ public class graph {
                             visited.add(con);
                             ArrayList<Integer> _edge=new ArrayList<>();
                             _edge.add(cNode.getID()); _edge.add(con);
-                            //System.out.println("Edge added: " + _edge);
                             treeEdges_BFS.add(_edge);
                             L.get(i+1).add(getNode(con));
                         }
@@ -359,48 +398,62 @@ public class graph {
             }            
         } 
     }
-    
-    
-    void DFS_R (int nodeStart){ // Depth First Search recursive
-        node u=getNode(nodeStart);
+   
+    void DFS_R (int n){ // Depth First Search recursive
+        node u=getNode(n);
         u.setExplored(true);    //mark as explored
         for(ArrayList<Integer> e : u.getEdges() ){
             int v=e.get(1);
             if (!getNode(v).isExplored() ){
-                DFS_R(v);                                   //Recursive call
-                ArrayList<Integer> _edge=new ArrayList<>();
-                _edge.add(u.getID()); _edge.add(v);
-                if(!edgeExist(_edge))
-                    treeEdges_DFS.add(_edge);               //Add the edge      
-            }     
+                treeEdges_DFS.add(e);
+                DFS_R(v);                                  //Recursive call
+            }   
         }  
     }
+    private boolean isConnected(ArrayList<Integer> edge, ArrayList<ArrayList<Integer>> tree){
+        int u=edge.get(0);
+        int v=edge.get(1);
+        boolean connected=false;
+        if(tree.isEmpty())
+            return true;    
+        for(ArrayList<Integer> e : tree){
+            int eU=e.get(0), eV=e.get(1);
+            if((u==eU)||(u==eV)||(v==eU)||(v==eV))
+                connected=true;
+        }
+        return connected;
+    }
     void DFS_I (int nodeStart){ // Depth First Search iterative
+        unexplore();
         ArrayList<node> memory=new ArrayList<>();
+        getNode(nodeStart).setParent(nodeStart);
         memory.add(0,getNode(nodeStart));
-        int lastNode=-1;
+        
         while (!memory.isEmpty()){
             node u= memory.get(0);      //Extract the first element
             memory.remove(0);           //Erase from memory the first element
-            if (!u.isExplored()){       //Only do something if the node has not been visited
-                u.setExplored(true);        //mark as explored
-                if(lastNode!=-1){           //use lastNode to form the edge
-                    ArrayList<Integer> _edge=new ArrayList<>();
-                    _edge.add(u.getID()); _edge.add(lastNode);
-                    if(!edgeExist(_edge))
-                        treeEdges_DFSI.add(_edge);               //Add the edge
-                    lastNode=u.getID();
-                }
-                else{                       //If is the first element just store it
-                    lastNode=u.getID();
-                }
-                for(int con : u.getConnections()){  //Add to memory each node to be visited
-                    memory.add(0,getNode(con));
-                } 
+            
+            for(int i=u.getEdges().size()-1;i>=0 ;i--){
+                int v=u.getEdges().get(i).get(1);
+                if (!getNode(v).isExplored() && (getNode(v).getParent()==-1) )     //Only do something if the node has not been visited && !memory.contains(getNode(v)) 
+                    memory.add(0,getNode(v));       //every non-explored node must go into memory           
             }
-        }   
+            int path=-1;
+            for(ArrayList<Integer> e : u.getEdges()){
+                int v=e.get(1);
+                node nodeV= getNode(v);
+                if ( !nodeV.isExplored() && (nodeV.getParent()==-1) && isConnected(e,treeEdges_DFSI) )  { //not explored and no parent
+                    if(path==-1){
+                        nodeV.setParent(u.getID());
+                        treeEdges_DFSI.add(e);
+                        path=1;
+                    }
+                }          
+            }
+            if(path==-1){   //If there is no possible path, mark as explored
+                u.setExplored(true);                
+            }
+        }  
     }    
-   
-    
-    
+  
 }

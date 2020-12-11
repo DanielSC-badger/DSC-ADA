@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class node {
     private static int IDcount=0;
     private int ID;
-    private int parentID; //use in case of a tree... or not.
+    private int parentID=-1; //use in case of a tree... or not.
     private ArrayList<Integer> connectedWith;
     private ArrayList<ArrayList<Integer>> edges;
     private String name;
@@ -62,11 +62,26 @@ public class node {
     ArrayList<ArrayList<Integer>> getEdges(){
         return edges;
     }
-    void connectWith(int _ID){
+    void connectWith(int _ID){ //connects self -> _ID;
         ArrayList<Integer> _edge = new ArrayList<>();
         _edge.add(ID);
         _edge.add(_ID);    
         connectedWith.add(_ID); //add to the list of connected
         edges.add(_edge);       //add the new edge to edges list
+    }
+    void connectWith(node newNode){ //connects self->_ID and _ID->self 
+        ArrayList<Integer> _edge = new ArrayList<>();
+        int _ID = newNode.getID();
+        _edge.add(ID);
+        _edge.add(_ID); 
+        connectedWith.add(_ID); //add to the list of connected
+        edges.add(_edge);       //add the new edge to edges list
+      
+        //Check the other node connections
+        ArrayList<Integer> connections=newNode.getConnections();
+        if (!connections.contains(ID)){
+            newNode.connectWith(ID);
+        }
+
     }
 }
