@@ -12,25 +12,14 @@ public class GrafosV1 {
 
     public static void main(String[] args){
         System.out.println("Generating Graph...");
-        int nodes=500;
-        
-        graph graphT=new graph("Barabasi"+nodes);
-        graphT.CretateGraph(graph.BARABASI, nodes,50); // 20 75 
-        
-    //    graphT.printGraph();
-        System.out.println("Saving Graph...");
-        graphT.saveGraph();
-        int nodeNum=graphT.getSomeNode(nodes);
-    //    System.out.println("Tree from node " + nodeNum);
-        System.out.println("Generating Trees...");
-        graphT.BFS(nodeNum);
-        graphT.DFS_R(nodeNum);
-        graphT.DFS_I(nodeNum);
-    //    System.out.println("Tree: " + graphT.get_Tree());
-        System.out.println("Saving Trees...");
-        graphT.saveTree(1);
-        graphT.saveTree(2);
-        graphT.saveTree(3);
+        int nodes=250;
+        graph G= new graph("Barabasi_dir_"+nodes);
+        G.genBarabasiAlbert(nodes,20,true,false);  
+        G.assignWeights(nodes+1);  
+        G.Dijkstra(G.getSomeNode(nodes));
+
+        G.saveGraph(true,false);    //Save complete graph with weights
+        G.saveGraph(true,true);     //Save Dijkstra graph
 
     }
     

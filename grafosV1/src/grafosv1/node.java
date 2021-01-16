@@ -15,6 +15,7 @@ public class node {
     private ArrayList<Integer> connectedWith;
     private ArrayList<ArrayList<Integer>> edges;
     private String name;
+    private int weight;
     private boolean explored;
     
     node(){
@@ -44,6 +45,13 @@ public class node {
     int getID (){
         return ID;
     }
+    void setWeight (int _weight){
+        weight=_weight;
+    }
+    int getWeight (){
+        return weight;
+    }
+    
     void setParent(int _parent){
         parentID=_parent;
     }

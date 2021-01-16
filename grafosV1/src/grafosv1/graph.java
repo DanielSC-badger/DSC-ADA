@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileWriter; 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 import java.util.Set;
 
 /**
@@ -13,10 +15,13 @@ import java.util.Set;
  * A200474
  * Nov 2020 - Creation
  * Dec 2020 - Trees 
+ * Jan 2021 - Dijkstra
  */
 
 public class graph {
     private ArrayList<ArrayList<Integer>> graph = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> wGraph = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> gDijkstra = new ArrayList<>();
     private ArrayList<node> graphNodes = new ArrayList<>();
     //enough trees to form it from the same graph
     private ArrayList<ArrayList<Integer>> treeEdges_BFS = new ArrayList<>();
@@ -60,6 +65,14 @@ public class graph {
     
     ArrayList<ArrayList<Integer>> get_Graph(){
         return graph;
+    }
+    
+     ArrayList<ArrayList<Integer>> get_weightedGraph(){
+        return wGraph;
+    }
+     
+    ArrayList<ArrayList<Integer>> get_Dijkstra(){
+        return gDijkstra;
     }
     
     ArrayList<ArrayList<Integer>> get_Tree(){
@@ -140,7 +153,11 @@ public class graph {
                 newNode2.setID(n2);
                 graphNodes.add(newNode2);
             }
-            getNode(n1).connectWith(getNode(n2));
+            if(dirigido){
+                getNode(n1).connectWith(n2);                
+            }
+            else
+                getNode(n1).connectWith(getNode(n2));
             
             ArrayList<ArrayList<Integer>> _edge= getNode(n1).getEdges();
             graph.add(_edge.get(_edge.size()-1));      
@@ -164,7 +181,10 @@ public class graph {
                         if (!isRepeated(n1,n2) && (n1!=n2)){
                             if (!graphNodes.contains(g))
                                 graphNodes.add(g);
-                            pnode.connectWith(g);  //connect the nodes
+                            if (dirigido)
+                                pnode.connectWith(n2);
+                            else
+                                pnode.connectWith(g);  //connect the nodes
                             ArrayList<Integer> _edge=new ArrayList<>();
                             _edge.add(n1); _edge.add(n2);
                             graph.add(_edge);       //add the edge to the graph
@@ -200,7 +220,10 @@ public class graph {
                             graphNodes.add(possibleNodes.get(i));
                         if (!graphNodes.contains(possibleNodes.get(j)))
                             graphNodes.add(possibleNodes.get(j));
-                        possibleNodes.get(i).connectWith(n2);  //connect the nodes
+                        if (dirigido)
+                            possibleNodes.get(i).connectWith(n2);  //connect the nodes
+                        else
+                            possibleNodes.get(i).connectWith(possibleNodes.get(n2));
                         ArrayList<Integer> _edge=new ArrayList<>();
                         _edge.add(n1); _edge.add(n2);
                         graph.add(_edge);                       //add the edge to the graph
@@ -230,7 +253,10 @@ public class graph {
                             graphNodes.add(possibleNodes.get(i));
                         if (!graphNodes.contains(possibleNodes.get(j)))
                             graphNodes.add(possibleNodes.get(j));
-                        possibleNodes.get(i).connectWith(n2);  //connect the nodes
+                        if (dirigido)
+                            possibleNodes.get(i).connectWith(n2);  //connect the nodes
+                        else
+                            possibleNodes.get(i).connectWith(possibleNodes.get(n2));
                         ArrayList<Integer> _edge=new ArrayList<>();
                         _edge.add(n1); _edge.add(n2);
                         graph.add(_edge);                       //add the edge to the graph
@@ -239,8 +265,72 @@ public class graph {
             }
         }
     }
+    void assignWeights(int range){
+        int wRange;
+        ArrayList<ArrayList<Integer>>  weights= new ArrayList<>();
+        if(range<graph.size())
+            wRange=graph.size();
+        else
+            wRange=range;
+        for(int i=0;i<graph.size();i++){
+            ArrayList<Integer> e=graph.get(i);
+            int w=rand.nextInt(wRange);
+            ArrayList<Integer> nEdge = new ArrayList<>();
+            nEdge.add(e.get(0));
+            nEdge.add(e.get(1));
+            nEdge.add(w);
+            weights.add(nEdge);
+        }
+        wGraph=weights;
+    }
     
+    void Dijkstra(int s){
+        System.out.println("Source Node: "+s);
+        ArrayList<node> S=new ArrayList<>();      
+        PriorityQueue<node> pq = new PriorityQueue<>(graphNodes.size()-1,new ArrayComparator());  
+        for(int i=0;i<graphNodes.size();i++){
+            node cNode=graphNodes.get(i);
+            cNode.setWeight(Integer.MAX_VALUE);
+            pq.add(cNode);}
+        node nNode=getNode(s);
+        nNode.setWeight(0);
+        pq.add(nNode);
+        while(!pq.isEmpty()){
+            node u=pq.poll();
+            if (!S.contains(u) && u.getWeight()!=Integer.MAX_VALUE){
+                S.add(u);
+                ArrayList<ArrayList<Integer>> uEdges=u.getEdges();
+                for(int i=0;i<uEdges.size();i++){
+                    ArrayList<Integer> edge = uEdges.get(i);
+                    node vNode=getNode(edge.get(1));
+                    if (!S.contains(vNode)){ //outcoming edges
+                        int newWeight=u.getWeight();
+                        int eIndex= graph.indexOf(edge);
+                        int vEdgeW=wGraph.get(eIndex).get(2);
+                        newWeight+=vEdgeW;    //new weight
+                        if (newWeight<vNode.getWeight()){
+                            vNode.setWeight(newWeight);
+                            pq.add(vNode);}
+                    }  
+                }
+            }  
+        }
+        ArrayList<Integer> _S=new ArrayList<>();
+        for (node n : S){
+            if (!_S.contains(n.getID()))
+                _S.add(n.getID());
+            for (ArrayList<Integer> edge : n.getEdges()){
+                int eIndex= graph.indexOf(edge);
+                if (!_S.contains(edge.get(1))){
+                    _S.add(edge.get(1));
+                    gDijkstra.add(wGraph.get(eIndex));
+                }
+            } 
+        }    
+    }
+
     //Method to print on console. Notice that the format match with Gephi
+    //Not any more.
     void printGraph(){
         System.out.println("Edges in " + Name + ": "+ graph);
         System.out.println("Nodes: " + graphNodes.size());
@@ -256,16 +346,18 @@ public class graph {
             String fileName=_file.getName();
             if (fileName.endsWith(".dot")) {
                 System.out.println("Erase: "+fileName);
-                
                 _file.delete();
-                
                 }
         }
     }
     
     //Method to save the Graph as a text document compatible with Gephi
-    void saveGraph(){
-        String graphStr="graph"+Name+".dot";
+    void saveGraph(boolean w, boolean dijkstra){
+        String graphStr="";
+        if (dijkstra){
+            graphStr="graph"+Name+"_Dijkstra"+".dot";}
+        else{
+            graphStr="graph"+Name+".dot";}
         try {
             File myObj = new File(graphStr);
             if (myObj.createNewFile()) 
@@ -280,9 +372,24 @@ public class graph {
         try {
             FileWriter ghostr = new FileWriter(graphStr);
             ghostr.write("graph abstract {\n");
+            if(w){
+                if(dijkstra)
+                {
+                    for(ArrayList<Integer> e : gDijkstra)
+                        ghostr.write("nodo_"+e.get(0)+"("+getNode(e.get(0)).getWeight()+")"+
+                                "->nodo_"+e.get(1)+"("+getNode(e.get(1)).getWeight()+")"+
+                                        "[label="+e.get(2)+"]"+";\n");  
+                }
+                else{
+                    for(ArrayList<Integer> e : wGraph)
+                        ghostr.write("nodo_"+e.get(0)+"->nodo_"+e.get(1)+"[label="+e.get(2)+"]"+";\n"); 
+                }
+            }
+            else{
+                for(ArrayList<Integer> e : graph)
+                    ghostr.write("nodo_"+e.get(0)+"->nodo_"+e.get(1)+";\n");
+            }
             
-            for(ArrayList<Integer> e : graph)
-                ghostr.write("nodo_"+e.get(0)+"->nodo_"+e.get(1)+";\n");
                       
             ghostr.write("}");
             ghostr.close();
