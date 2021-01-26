@@ -16,6 +16,7 @@ public class node {
     private ArrayList<ArrayList<Integer>> edges;
     private String name;
     private int weight;
+    private int connectedComponent;
     private boolean explored;
     
     node(){
@@ -45,11 +46,19 @@ public class node {
     int getID (){
         return ID;
     }
+    
     void setWeight (int _weight){
         weight=_weight;
     }
     int getWeight (){
         return weight;
+    }
+    
+    void setCComponent (int _connectedComponent){
+        connectedComponent=_connectedComponent;
+    }
+    int getCComponent (){
+        return connectedComponent;
     }
     
     void setParent(int _parent){

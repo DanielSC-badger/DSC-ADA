@@ -22,17 +22,27 @@ public class graph {
     private ArrayList<ArrayList<Integer>> graph = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> wGraph = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> gDijkstra = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> gKruskal = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> gKruskalI = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> gPrim = new ArrayList<>();
     private ArrayList<node> graphNodes = new ArrayList<>();
+    private ArrayList<node> kruskalNodes = new ArrayList<>();
     //enough trees to form it from the same graph
     private ArrayList<ArrayList<Integer>> treeEdges_BFS = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> treeEdges_DFS = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> treeEdges_DFSI = new ArrayList<>();
+    private ArrayList<Integer> nodesBFS = new ArrayList<>();
     private String Name="";
     private Random rand;
     static final String ERDOS="Erdös y Rényi";
     static final String GILBERT="Gilbert";
     static final String GEOGRAPHIC_SIMPLE="Geographic_simple";
     static final String BARABASI="Barabási-Albert";
+    static final int GRAPH=0;
+    static final int DIJKSTRA=1;
+    static final int KRUSKALD=2;
+    static final int KRUSKALI=3;
+    static final int PRIM=4;
     
     graph(){
         init();
@@ -73,6 +83,12 @@ public class graph {
      
     ArrayList<ArrayList<Integer>> get_Dijkstra(){
         return gDijkstra;
+    }
+    ArrayList<ArrayList<Integer>> get_Kruskal(){
+        return gKruskal;
+    }
+    ArrayList<ArrayList<Integer>> get_Prim(){
+        return gPrim;
     }
     
     ArrayList<ArrayList<Integer>> get_Tree(){
@@ -328,7 +344,129 @@ public class graph {
             } 
         }    
     }
-
+    void kruskalD(){
+        gKruskal.clear();
+        if(wGraph.isEmpty())
+            assignWeights(graphNodes.size());
+        PriorityQueue<ArrayList<Integer>> pq = new PriorityQueue<>(wGraph.size()-1,new EdgeComparator());
+        //Testing this syntax
+        wGraph.forEach((n) -> {pq.add(n);});
+        graphNodes.forEach((n) -> {n.setCComponent(n.getID());});
+        for(int i=0;i<wGraph.size();i++){
+            ArrayList<Integer> edge= pq.poll();
+            int componentC=getNode(edge.get(0)).getCComponent();
+            int componentC1=getNode(edge.get(1)).getCComponent();
+            if (componentC!=componentC1){
+                gKruskal.add(edge);
+                graphNodes.forEach((n)->{
+                    if (n.getCComponent()==componentC1)
+                        n.setCComponent(componentC); 
+                });
+            }
+        }
+        int MST=0;
+        for (int i=0;i<gKruskal.size();i++)
+            MST+=gKruskal.get(i).get(2);
+        System.out.println("MST KruskalD = "+MST);      
+    }
+    
+    boolean disconnectT(ArrayList<Integer> T , ArrayList<Integer> edge){
+        node node1=getNode(edge.get(0));
+        node node2=getNode(edge.get(1));
+        ArrayList<Integer> c1= node1.getConnections();
+        ArrayList<Integer> c2= node2.getConnections();
+        boolean isConnected=false;
+        boolean restoreFlag1=false;
+        boolean restoreFlag2=false;
+        if (c1.contains(edge.get(1))){
+            int nodeIndex=kruskalNodes.indexOf(node1);
+            kruskalNodes.get(nodeIndex).getConnections().remove(edge.get(1));
+            restoreFlag1=true;
+        }
+        if (c2.contains(edge.get(0))){
+            int nodeIndex=kruskalNodes.indexOf(node2);
+            kruskalNodes.get(nodeIndex).getConnections().remove(edge.get(0));
+            restoreFlag2=true;
+        }
+        //Calculate BFS once the connections on edge were deleted
+        BFS(edge.get(0),kruskalNodes);
+        isConnected=nodesBFS.containsAll(T);
+        if(!isConnected){
+            if (restoreFlag1){
+            int nodeIndex=graphNodes.indexOf(node1);
+            graphNodes.get(nodeIndex).getConnections().add(edge.get(1));
+            restoreFlag1=false;
+            }
+            if (restoreFlag2){
+                int nodeIndex=graphNodes.indexOf(node2);
+                graphNodes.get(nodeIndex).getConnections().add(edge.get(0));
+                restoreFlag2=false;
+            }
+        }  
+        return !isConnected;
+    }
+    
+    void kruskalI(){
+        gKruskalI.clear();
+        kruskalNodes=new ArrayList<>(graphNodes);
+        ArrayList<Integer> nodeList=new ArrayList<>();
+        ArrayList<ArrayList<Integer>> T=new ArrayList<>(wGraph);
+        if(wGraph.isEmpty())
+            assignWeights(graphNodes.size());
+        PriorityQueue<ArrayList<Integer>> pq = new PriorityQueue<>(wGraph.size()-1,new Edge2Comparator());
+        wGraph.forEach((n) -> {pq.add(n);});
+        graphNodes.forEach((n)->{nodeList.add(n.getID());} );
+        
+        for (int i=0;i<wGraph.size();i++){
+            ArrayList<Integer> edge= pq.poll();
+            if (!disconnectT(nodeList,edge))
+                T.remove(edge);      
+        }         
+        gKruskalI=T;
+        int MST=0;
+        for (int i=0;i<gKruskalI.size();i++)
+            MST+=gKruskalI.get(i).get(2);
+        System.out.println("MST KruskalI = "+MST); 
+    }
+    
+    void prim(){
+        if(wGraph.isEmpty())
+            assignWeights(graphNodes.size());
+        ArrayList<ArrayList<Integer>> ePrim=new ArrayList<>();
+        ArrayList<node> S=new ArrayList<>();      
+        PriorityQueue<node> pq = new PriorityQueue<>(graphNodes.size()-1,new ArrayComparator());  
+        for(int i=0;i<graphNodes.size();i++){
+            node cNode=graphNodes.get(i);
+            cNode.setWeight(Integer.MAX_VALUE);
+            pq.add(cNode);}
+        while (!pq.isEmpty()){
+            node u=pq.poll();
+            S.add(u);
+            for(Integer _v : u.getConnections()){
+                ArrayList<Integer> edge=new ArrayList<>();
+                edge.add(u.getID());edge.add(_v);
+                int eIndex=graph.indexOf(edge);
+                if (eIndex==-1){
+                    edge.clear();
+                    edge.add(_v);edge.add(u.getID());
+                    eIndex=graph.indexOf(edge);
+                }
+                int vEdgeW=wGraph.get(eIndex).get(2);
+                node v=getNode(_v);
+                if(!S.contains(v) && vEdgeW<u.getWeight()){
+                    ePrim.add(wGraph.get(eIndex));
+                    u.setWeight(vEdgeW);
+                    pq.add(u);
+                }
+            }
+        }
+        gPrim=ePrim;
+        int MST=0;
+        for (int i=0;i<gPrim.size();i++)
+            MST+=gPrim.get(i).get(2);
+        System.out.println("MST Prim = "+MST); 
+    }
+    
     //Method to print on console. Notice that the format match with Gephi
     //Not any more.
     void printGraph(){
@@ -352,12 +490,29 @@ public class graph {
     }
     
     //Method to save the Graph as a text document compatible with Gephi
-    void saveGraph(boolean w, boolean dijkstra){
+    void saveGraph(boolean w, int type){
         String graphStr="";
-        if (dijkstra){
-            graphStr="graph"+Name+"_Dijkstra"+".dot";}
-        else{
-            graphStr="graph"+Name+".dot";}
+        switch(type){
+            case GRAPH:
+              graphStr="graph"+Name+".dot";
+              break;
+            case DIJKSTRA:
+              graphStr="graph"+Name+"_Dijkstra"+".dot";
+              break;
+            case KRUSKALD:
+              graphStr="graph"+Name+"_KruskalD"+".dot";
+              break; 
+            case KRUSKALI:
+              graphStr="graph"+Name+"_KruskalI"+".dot";
+              break; 
+            case PRIM:
+              graphStr="graph"+Name+"_PRIM"+".dot";
+              break; 
+            default:
+              graphStr="graph"+Name+".dot";
+              break;
+        }
+        
         try {
             File myObj = new File(graphStr);
             if (myObj.createNewFile()) 
@@ -373,7 +528,7 @@ public class graph {
             FileWriter ghostr = new FileWriter(graphStr);
             ghostr.write("graph abstract {\n");
             if(w){
-                if(dijkstra)
+                if(type==DIJKSTRA)
                 {
                     for(ArrayList<Integer> e : gDijkstra)
                         ghostr.write("nodo_"+e.get(0)+"("+getNode(e.get(0)).getWeight()+")"+
@@ -381,7 +536,21 @@ public class graph {
                                         "[label="+e.get(2)+"]"+";\n");  
                 }
                 else{
-                    for(ArrayList<Integer> e : wGraph)
+                    ArrayList<ArrayList<Integer>> toPrint;
+                    switch(type){
+                        case KRUSKALD:
+                            toPrint=gKruskal;
+                            break; 
+                        case KRUSKALI:
+                            toPrint=gKruskalI;
+                            break; 
+                        case PRIM:
+                            toPrint=gPrim;
+                            break;
+                        default:
+                            toPrint=wGraph;
+                    }
+                    for(ArrayList<Integer> e : toPrint)
                         ghostr.write("nodo_"+e.get(0)+"->nodo_"+e.get(1)+"[label="+e.get(2)+"]"+";\n"); 
                 }
             }
@@ -463,18 +632,24 @@ public class graph {
     }
     
     private node getNode(int _ID){
-        for(node n : graphNodes){
+        for(node n : graphNodes)
             if(_ID==n.getID())
                 return n;
-        }
+        return null;
+    }
+    private node getNode(int _ID, ArrayList<node> graph){
+        for(node n : graph)
+            if(_ID==n.getID())
+                return n;
         return null;
     } 
     
-    void BFS (int nodeStart){//Breadth First Search
+    void BFS (int nodeStart, ArrayList<node> graph){//Breadth First Search
+        nodesBFS.clear();
         ArrayList<Integer> visited=new ArrayList<>(); //visited nodes
         ArrayList<ArrayList<node>> L = new ArrayList<>();
         boolean nodeExist=false;
-        for (node n : graphNodes){      //Check if the start node exist
+        for (node n : graph){      //Check if the start node exist
             if (nodeStart==n.getID()){
                 nodeExist=true;
                 L.add(new ArrayList<>());
@@ -489,7 +664,7 @@ public class graph {
             while(!L.get(i).isEmpty()){                
                 L.add(new ArrayList<>()); //add the next layer
                 for(node cNode : L.get(i)){
-                    ArrayList<Integer> connections=new ArrayList<>();
+                    ArrayList<Integer> connections;
                     connections=cNode.getConnections();
                     for(int con : connections){
                         if(!visited.contains(con)){
@@ -497,13 +672,14 @@ public class graph {
                             ArrayList<Integer> _edge=new ArrayList<>();
                             _edge.add(cNode.getID()); _edge.add(con);
                             treeEdges_BFS.add(_edge);
-                            L.get(i+1).add(getNode(con));
+                            L.get(i+1).add(getNode(con,graph));
                         }
                     }
                 }
                 i++;
             }            
         } 
+        nodesBFS=visited;   //store all the visited Nodes
     }
    
     void DFS_R (int n){ // Depth First Search recursive
